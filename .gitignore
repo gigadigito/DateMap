@@ -1,0 +1,8 @@
+bin/
+obj/
+.vs/
+.dotnet/
+*.user
+appsettings.Local.json
+.env
+secrets.json

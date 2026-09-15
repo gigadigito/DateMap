@@ -1,0 +1,8 @@
+using System.Security.Claims; using DateMap.Application; using DateMap.Domain; using DateMap.Infrastructure; using Microsoft.AspNetCore.Authorization; using Microsoft.AspNetCore.Mvc; using Microsoft.EntityFrameworkCore;
+namespace DateMap.Api.Controllers;
+[ApiController,Authorize] public sealed class ProfilesController(DateMapDbContext db):ControllerBase
+{ Guid Pid=>Guid.Parse(User.FindFirstValue("profile_id")!); static ProfileDto D(Profile p)=>new(p.Id,p.DisplayName,p.BirthDate,p.Bio,p.Gender,p.InterestedIn,p.City,p.Photos.OrderBy(x=>x.DisplayOrder).Select(x=>x.Url).ToList());
+ [HttpGet("api/profile/me")] public async Task<ActionResult<ProfileDto>> Me()=>D(await db.Profiles.Include(x=>x.Photos).SingleAsync(x=>x.Id==Pid));
+ [HttpPut("api/profile/me")] public async Task<ActionResult<ProfileDto>> Update(UpdateProfileRequest r){var p=await db.Profiles.Include(x=>x.Photos).SingleAsync(x=>x.Id==Pid);p.Update(r.DisplayName,r.BirthDate,r.Bio,r.Gender,r.InterestedIn,r.City);await db.SaveChangesAsync();return Ok(D(p));}
+ [HttpGet("api/profiles/{id:guid}")] public async Task<ActionResult<ProfileDto>> Get(Guid id){var p=await db.Profiles.Include(x=>x.Photos).SingleOrDefaultAsync(x=>x.Id==id&&x.IsActive);return p is null?NotFound():D(p);}
+ [HttpGet("api/discovery")] public async Task<IReadOnlyList<ProfileDto>> Discovery()=>await db.Profiles.AsNoTracking().Where(x=>x.Id!=Pid&&x.IsActive).OrderBy(x=>x.CreatedAt).Take(50).Select(x=>new ProfileDto(x.Id,x.DisplayName,x.BirthDate,x.Bio,x.Gender,x.InterestedIn,x.City,x.Photos.OrderBy(y=>y.DisplayOrder).Select(y=>y.Url).ToList())).ToListAsync(); }

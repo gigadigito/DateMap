@@ -1,0 +1,3 @@
+using DateMap.Domain; using Microsoft.AspNetCore.Diagnostics;
+public sealed class ApiExceptionHandler(IProblemDetailsService problems,ILogger<ApiExceptionHandler> logger):IExceptionHandler
+{ public async ValueTask<bool> TryHandleAsync(HttpContext c,Exception ex,CancellationToken ct){logger.LogError(ex,"Unhandled API exception");var status=ex switch{DomainException=>422,KeyNotFoundException=>404,UnauthorizedAccessException=>403,InvalidOperationException=>409,_=>500};c.Response.StatusCode=status;return await problems.TryWriteAsync(new(){HttpContext=c,ProblemDetails=new(){Status=status,Title=status==500?"Unexpected error":ex.Message,Detail=status==500?null:ex.Message}});}}
