@@ -1,0 +1,40 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+#app {
+    min-height: 100vh;
+}
+
+a, .btn-link {
+    color: #006bb7;
+}
+
+.btn-primary {
+    color: #fff;
+    background-color: #1a73e8;
+    border-color: #1a73e8;
+}
+
+.btn-primary:hover {
+    color: #fff;
+    background-color: #1557b0;
+    border-color: #1557b0;
+}
+
+.card {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+}
+
+.top-row {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #d6d5d5;
+    min-height: 3.5rem;
+}
+
+.navbar {
+    z-index: 1000;
+}

@@ -1,0 +1,75 @@
+@page "/diaries/new"
+@attribute [Authorize]
+@inject DiaryService DiaryService
+@inject NavigationManager Navigation
+
+<h1>New Diary</h1>
+
+@if (!string.IsNullOrEmpty(error))
+{
+    <div class="error-message">@error</div>
+}
+
+<EditForm Model="model" OnValidSubmit="HandleCreate" FormName="newDiary">
+    <DataAnnotationsValidator />
+
+    <div class="mb-3">
+        <label class="form-label">Title</label>
+        <InputText class="form-control" @bind-Value="model.Title" />
+        <ValidationMessage For="() => model.Title" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Description</label>
+        <InputTextArea class="form-control" @bind-Value="model.Description" rows="3" />
+        <ValidationMessage For="() => model.Description" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Cover Image URL</label>
+        <InputText class="form-control" @bind-Value="model.CoverImageUrl" />
+    </div>
+
+    <button type="submit" class="btn btn-primary" disabled="@loading">
+        @(loading ? "Creating..." : "Create Diary")
+    </button>
+    <a href="/diaries" class="btn btn-secondary">Cancel</a>
+</EditForm>
+
+@code {
+    private CreateDiaryModel model = new();
+    private string? error;
+    private bool loading;
+
+    private async Task HandleCreate()
+    {
+        error = null;
+        loading = true;
+        try
+        {
+            var diary = await DiaryService.CreateAsync(new CreateDiaryRequest(model.Title, model.Description, model.CoverImageUrl));
+            Navigation.NavigateTo($"/diaries/{diary.Id}");
+        }
+        catch
+        {
+            error = "Failed to create diary. Please check the form.";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private class CreateDiaryModel
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MaxLength(150)]
+        public string Title { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.MaxLength(2000)]
+        public string? Description { get; set; }
+
+        [System.ComponentModel.DataAnnotations.MaxLength(2048)]
+        public string? CoverImageUrl { get; set; }
+    }
+}

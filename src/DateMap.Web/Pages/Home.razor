@@ -1,0 +1,27 @@
+﻿@page "/"
+@attribute [Authorize]
+
+<h1>Date Map</h1>
+
+<p>Welcome to your dating diary. Manage your diaries, events, and categories.</p>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Diaries</h5>
+                <p class="card-text">Create and manage your travel and dating diaries.</p>
+                <a href="/diaries" class="btn btn-primary">View Diaries</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Categories</h5>
+                <p class="card-text">Organize your events with custom categories.</p>
+                <a href="/categories" class="btn btn-primary">View Categories</a>
+            </div>
+        </div>
+    </div>
+</div>

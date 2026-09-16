@@ -1,0 +1,184 @@
+@page "/categories"
+@attribute [Authorize]
+@inject CategoryService CategoryService
+
+<h1>Categories</h1>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="@(isError ? "error-message" : "success-message")">@message</div>
+}
+
+@if (loading)
+{
+    <div class="loading">Loading categories...</div>
+}
+else
+{
+    @if (showForm)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5>@(editingId is null ? "New Category" : "Edit Category")</h5>
+                <EditForm Model="model" OnValidSubmit="HandleSave" FormName="categoryForm">
+                    <DataAnnotationsValidator />
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Name</label>
+                            <InputText class="form-control" @bind-Value="model.Name" />
+                            <ValidationMessage For="() => model.Name" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Icon</label>
+                            <InputText class="form-control" @bind-Value="model.Icon" />
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Color (#RRGGBB)</label>
+                            <div class="d-flex align-items-center gap-2">
+                                <InputText class="form-control" @bind-Value="model.Color" />
+                                @if (!string.IsNullOrEmpty(model.Color))
+                                {
+                                    <span class="color-swatch" style="background-color: @model.Color"></span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm" disabled="@saving">Save</button>
+                    <button class="btn btn-secondary btn-sm" @onclick="CancelForm">Cancel</button>
+                </EditForm>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="mb-3">
+            <button class="btn btn-primary" @onclick="ShowNew">New Category</button>
+        </div>
+    }
+
+    @if (categories.Length == 0)
+    {
+        <div class="empty-state">
+            <p>No categories yet. Create your first category!</p>
+        </div>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Color</th>
+                    <th>Name</th>
+                    <th>Icon</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var cat in categories)
+                {
+                    <tr>
+                        <td>
+                            @if (cat.Color is not null)
+                            {
+                                <span class="color-swatch" style="background-color: @cat.Color"></span>
+                            }
+                        </td>
+                        <td>@cat.Name</td>
+                        <td>@(cat.Icon ?? "-")</td>
+                        <td>
+                            <button class="btn btn-outline-secondary btn-sm me-1" @onclick="() => StartEdit(cat)">Edit</button>
+                            <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmDelete(cat)">Delete</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    private CategoryDto[] categories = [];
+    private bool loading = true;
+    private bool showForm;
+    private bool saving;
+    private Guid? editingId;
+    private string? message;
+    private bool isError;
+    private CategoryModel model = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { categories = await CategoryService.GetAllAsync(); }
+        catch { }
+        finally { loading = false; }
+    }
+
+    private void ShowNew()
+    {
+        editingId = null;
+        model = new CategoryModel();
+        showForm = true;
+        message = null;
+    }
+
+    private void StartEdit(CategoryDto cat)
+    {
+        editingId = cat.Id;
+        model = new CategoryModel { Name = cat.Name, Icon = cat.Icon, Color = cat.Color };
+        showForm = true;
+        message = null;
+    }
+
+    private void CancelForm() { showForm = false; editingId = null; }
+
+    private async Task HandleSave()
+    {
+        saving = true;
+        message = null;
+        try
+        {
+            if (editingId is null)
+            {
+                await CategoryService.CreateAsync(new CreateCategoryRequest(model.Name, model.Icon, model.Color));
+                message = "Category created.";
+            }
+            else
+            {
+                await CategoryService.UpdateAsync(editingId.Value, new UpdateCategoryRequest(model.Name, model.Icon, model.Color));
+                message = "Category updated.";
+            }
+            isError = false;
+            showForm = false;
+            categories = await CategoryService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            message = ex.Message.Contains("already exists") ? "A category with this name already exists." : "Failed to save category.";
+            isError = true;
+        }
+        finally { saving = false; }
+    }
+
+    private async Task ConfirmDelete(CategoryDto cat)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Delete category \"{cat.Name}\"?")) return;
+        try
+        {
+            await CategoryService.DeleteAsync(cat.Id);
+            categories = categories.Where(c => c.Id != cat.Id).ToArray();
+            message = "Category deleted.";
+            isError = false;
+        }
+        catch { message = "Failed to delete category."; isError = true; }
+    }
+
+    private class CategoryModel
+    {
+        [System.ComponentModel.DataAnnotations.Required] [System.ComponentModel.DataAnnotations.MaxLength(100)]
+        public string Name { get; set; } = "";
+        [System.ComponentModel.DataAnnotations.MaxLength(50)] public string? Icon { get; set; }
+        [System.ComponentModel.DataAnnotations.MaxLength(7)] public string? Color { get; set; }
+    }
+
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+}
