@@ -15,5 +15,8 @@ public record CategoryDto(Guid Id,string Name,string? Icon,string? Color,DateTim
 public record CreateDiaryRequest(string Title,string? Description,string? CoverImageUrl);
 public record UpdateDiaryRequest(string Title,string? Description,string? CoverImageUrl);
 public record DiaryDto(Guid Id,string Title,string? Description,string? CoverImageUrl,DateTime CreatedAt,DateTime UpdatedAt);
+public record CreateEventRequest(Guid DiaryId,Guid? CategoryId,string Title,string? Description,DateTime EventDate,string? PlaceName,double? Latitude,double? Longitude);
+public record UpdateEventRequest(Guid DiaryId,Guid? CategoryId,string Title,string? Description,DateTime EventDate,string? PlaceName,double? Latitude,double? Longitude);
+public record EventDto(Guid Id,Guid DiaryId,Guid? CategoryId,string Title,string? Description,DateTime EventDate,string? PlaceName,double? Latitude,double? Longitude,DateTime CreatedAt,DateTime UpdatedAt);
 public interface ICurrentUser { Guid UserId { get; } }
 public interface ITokenService { string Create(User user,Guid profileId); }

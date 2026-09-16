@@ -1,0 +1,323 @@
+@page "/diaries/{Id:guid}"
+@page "/diaries/{Id:guid}/edit"
+@attribute [Authorize]
+@inject DiaryService DiaryService
+@inject EventService EventService
+@inject CategoryService CategoryService
+@inject NavigationManager Navigation
+
+@if (loading)
+{
+    <div class="loading">Loading diary...</div>
+}
+else if (diary is null)
+{
+    <div class="error-message">Diary not found.</div>
+}
+else if (isEditing)
+{
+    <h1>Edit Diary</h1>
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <div class="error-message">@error</div>
+    }
+    <EditForm Model="editModel" OnValidSubmit="HandleUpdate" FormName="editDiary">
+        <DataAnnotationsValidator />
+        <div class="mb-3">
+            <label class="form-label">Title</label>
+            <InputText class="form-control" @bind-Value="editModel.Title" />
+            <ValidationMessage For="() => editModel.Title" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Description</label>
+            <InputTextArea class="form-control" @bind-Value="editModel.Description" rows="3" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Cover Image URL</label>
+            <InputText class="form-control" @bind-Value="editModel.CoverImageUrl" />
+        </div>
+        <button type="submit" class="btn btn-primary" disabled="@saving">Save</button>
+        <button class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+    </EditForm>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>@diary.Title</h1>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" @onclick="StartEdit">Edit</button>
+            <button class="btn btn-outline-danger btn-sm" @onclick="ConfirmDeleteDiary">Delete</button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(diary.Description))
+    {
+        <p>@diary.Description</p>
+    }
+    <p class="text-muted">Created: @diary.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+
+    <hr />
+
+    <div class="d-flex justify-content-between align-items-center">
+        <h3>Events</h3>
+        <button class="btn btn-primary btn-sm" @onclick="ShowAddEvent">Add Event</button>
+    </div>
+
+    @if (showEventForm)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5>@(editingEvent is null ? "New Event" : "Edit Event")</h5>
+                @if (!string.IsNullOrEmpty(eventError))
+                {
+                    <div class="error-message">@eventError</div>
+                }
+                <EditForm Model="eventModel" OnValidSubmit="HandleEventSubmit" FormName="eventForm">
+                    <DataAnnotationsValidator />
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Title</label>
+                            <InputText class="form-control" @bind-Value="eventModel.Title" />
+                            <ValidationMessage For="() => eventModel.Title" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Event Date</label>
+                            <InputDate class="form-control" @bind-Value="eventModel.EventDate" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Place Name</label>
+                            <InputText class="form-control" @bind-Value="eventModel.PlaceName" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Category</label>
+                            <InputSelect class="form-select" @bind-Value="eventModel.CategoryId">
+                                <option value="">No category</option>
+                                @foreach (var cat in categories)
+                                {
+                                    <option value="@cat.Id">@cat.Name</option>
+                                }
+                            </InputSelect>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <InputTextArea class="form-control" @bind-Value="eventModel.Description" rows="2" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Latitude</label>
+                            <InputNumber class="form-control" @bind-Value="eventModel.Latitude" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Longitude</label>
+                            <InputNumber class="form-control" @bind-Value="eventModel.Longitude" />
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm" disabled="@eventSaving">Save Event</button>
+                    <button class="btn btn-secondary btn-sm" @onclick="CancelEventForm">Cancel</button>
+                </EditForm>
+            </div>
+        </div>
+    }
+
+    @if (eventsLoading)
+    {
+        <div class="loading">Loading events...</div>
+    }
+    else if (events.Length == 0)
+    {
+        <div class="empty-state">
+            <p>No events yet. Add your first event!</p>
+        </div>
+    }
+    else
+    {
+        @foreach (var ev in events)
+        {
+            <div class="card mb-2">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title mb-1">@ev.Title</h6>
+                            <small class="text-muted">@ev.EventDate.ToString("dd/MM/yyyy HH:mm")</small>
+                            @if (!string.IsNullOrEmpty(ev.PlaceName))
+                            {
+                                <span class="ms-2 text-muted">@@ @ev.PlaceName</span>
+                            }
+                            @if (ev.CategoryId.HasValue)
+                            {
+                                var cat = categories.FirstOrDefault(c => c.Id == ev.CategoryId);
+                                if (cat is not null)
+                                {
+                                    <span class="ms-2">
+                                        @if (cat.Color is not null)
+                                        {
+                                            <span class="color-swatch" style="background-color: @cat.Color"></span>
+                                        }
+                                        @cat.Name
+                                    </span>
+                                }
+                            }
+                        </div>
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="() => StartEditEvent(ev)">Edit</button>
+                            <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmDeleteEvent(ev)">Delete</button>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(ev.Description))
+                    {
+                        <p class="card-text mt-1 mb-0">@ev.Description</p>
+                    }
+                </div>
+            </div>
+        }
+    }
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private DiaryDto? diary;
+    private EventDto[] events = [];
+    private CategoryDto[] categories = [];
+    private bool loading = true;
+    private bool eventsLoading;
+    private bool isEditing;
+    private bool saving;
+    private bool showEventForm;
+    private bool eventSaving;
+    private string? error;
+    private string? eventError;
+    private EventDto? editingEvent;
+
+    private EditDiaryModel editModel = new();
+    private EventFormModel eventModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            diary = await DiaryService.GetByIdAsync(Id);
+            if (diary is not null)
+            {
+                editModel = new EditDiaryModel { Title = diary.Title, Description = diary.Description, CoverImageUrl = diary.CoverImageUrl };
+                await LoadEvents();
+                categories = await CategoryService.GetAllAsync();
+            }
+        }
+        catch { }
+        finally { loading = false; }
+    }
+
+    private async Task LoadEvents()
+    {
+        eventsLoading = true;
+        try { events = await EventService.GetByDiaryAsync(Id); }
+        catch { }
+        finally { eventsLoading = false; }
+    }
+
+    private void StartEdit() { isEditing = true; }
+    private void CancelEdit() { isEditing = false; editModel = new EditDiaryModel { Title = diary!.Title, Description = diary.Description, CoverImageUrl = diary.CoverImageUrl }; }
+
+    private async Task HandleUpdate()
+    {
+        saving = true;
+        error = null;
+        try
+        {
+            diary = await DiaryService.UpdateAsync(Id, new UpdateDiaryRequest(editModel.Title, editModel.Description, editModel.CoverImageUrl));
+            isEditing = false;
+        }
+        catch { error = "Failed to update diary."; }
+        finally { saving = false; }
+    }
+
+    private async Task ConfirmDeleteDiary()
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Delete \"{diary!.Title}\"?")) return;
+        try { await DiaryService.DeleteAsync(Id); Navigation.NavigateTo("/diaries"); }
+        catch { error = "Failed to delete diary."; }
+    }
+
+    private void ShowAddEvent()
+    {
+        editingEvent = null;
+        eventModel = new EventFormModel { EventDate = DateTime.Today };
+        showEventForm = true;
+        eventError = null;
+    }
+
+    private void StartEditEvent(EventDto ev)
+    {
+        editingEvent = ev;
+        eventModel = new EventFormModel
+        {
+            Title = ev.Title,
+            Description = ev.Description,
+            EventDate = ev.EventDate,
+            PlaceName = ev.PlaceName,
+            CategoryId = ev.CategoryId?.ToString() ?? "",
+            Latitude = ev.Latitude,
+            Longitude = ev.Longitude
+        };
+        showEventForm = true;
+        eventError = null;
+    }
+
+    private void CancelEventForm() { showEventForm = false; editingEvent = null; }
+
+    private async Task HandleEventSubmit()
+    {
+        eventSaving = true;
+        eventError = null;
+        try
+        {
+            Guid? catId = string.IsNullOrEmpty(eventModel.CategoryId) ? null : Guid.Parse(eventModel.CategoryId);
+            if (editingEvent is null)
+            {
+                await EventService.CreateAsync(new CreateEventRequest(Id, catId, eventModel.Title, eventModel.Description, eventModel.EventDate, eventModel.PlaceName, eventModel.Latitude, eventModel.Longitude));
+            }
+            else
+            {
+                await EventService.UpdateAsync(editingEvent.Id, new UpdateEventRequest(Id, catId, eventModel.Title, eventModel.Description, eventModel.EventDate, eventModel.PlaceName, eventModel.Latitude, eventModel.Longitude));
+            }
+            showEventForm = false;
+            editingEvent = null;
+            await LoadEvents();
+        }
+        catch { eventError = "Failed to save event. Check the form."; }
+        finally { eventSaving = false; }
+    }
+
+    private async Task ConfirmDeleteEvent(EventDto ev)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Delete event \"{ev.Title}\"?")) return;
+        try { await EventService.DeleteAsync(ev.Id); await LoadEvents(); }
+        catch { }
+    }
+
+    private class EditDiaryModel
+    {
+        [System.ComponentModel.DataAnnotations.Required] [System.ComponentModel.DataAnnotations.MaxLength(150)]
+        public string Title { get; set; } = "";
+        [System.ComponentModel.DataAnnotations.MaxLength(2000)] public string? Description { get; set; }
+        [System.ComponentModel.DataAnnotations.MaxLength(2048)] public string? CoverImageUrl { get; set; }
+    }
+
+    private class EventFormModel
+    {
+        [System.ComponentModel.DataAnnotations.Required] [System.ComponentModel.DataAnnotations.MaxLength(200)]
+        public string Title { get; set; } = "";
+        public string? Description { get; set; }
+        [System.ComponentModel.DataAnnotations.Required] public DateTime EventDate { get; set; } = DateTime.Today;
+        public string? PlaceName { get; set; }
+        public string CategoryId { get; set; } = "";
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+    }
+
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+}

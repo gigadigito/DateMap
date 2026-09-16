@@ -1,0 +1,90 @@
+@page "/diaries"
+@attribute [Authorize]
+@inject DiaryService DiaryService
+
+<h1>My Diaries</h1>
+
+<div class="mb-3">
+    <a href="/diaries/new" class="btn btn-primary">New Diary</a>
+</div>
+
+@if (loading)
+{
+    <div class="loading">Loading diaries...</div>
+}
+else if (error is not null)
+{
+    <div class="error-message">@error</div>
+}
+else if (diaries.Length == 0)
+{
+    <div class="empty-state">
+        <p>You don't have any diaries yet.</p>
+        <a href="/diaries/new" class="btn btn-primary">Create your first diary</a>
+    </div>
+}
+else
+{
+    <div class="row">
+        @foreach (var diary in diaries)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">@diary.Title</h5>
+                        @if (!string.IsNullOrEmpty(diary.Description))
+                        {
+                            <p class="card-text text-muted">@diary.Description</p>
+                        }
+                        <p class="card-text"><small class="text-muted">Created: @diary.CreatedAt.ToString("dd/MM/yyyy")</small></p>
+                        <div class="d-flex gap-2">
+                            <a href="/diaries/@diary.Id" class="btn btn-outline-primary btn-sm">Open</a>
+                            <a href="/diaries/@diary.Id/edit" class="btn btn-outline-secondary btn-sm">Edit</a>
+                            <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmDelete(diary)">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private DiaryDto[] diaries = [];
+    private bool loading = true;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            diaries = await DiaryService.GetAllAsync();
+        }
+        catch
+        {
+            error = "Unable to load your diaries. Please try again.";
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task ConfirmDelete(DiaryDto diary)
+    {
+        if (!await JS.InvokeAsync<bool>("confirm", $"Delete \"{diary.Title}\"?"))
+            return;
+
+        try
+        {
+            await DiaryService.DeleteAsync(diary.Id);
+            diaries = diaries.Where(d => d.Id != diary.Id).ToArray();
+        }
+        catch
+        {
+            error = "Failed to delete diary.";
+        }
+    }
+
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+}

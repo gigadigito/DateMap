@@ -7,7 +7,7 @@ namespace DateMap.Infrastructure;
 
 public sealed class DateMapDbContext(DbContextOptions<DateMapDbContext> options) : DbContext(options)
 {
-    public DbSet<User> Users=>Set<User>(); public DbSet<Profile> Profiles=>Set<Profile>(); public DbSet<ProfilePhoto> ProfilePhotos=>Set<ProfilePhoto>(); public DbSet<Like> Likes=>Set<Like>(); public DbSet<Match> Matches=>Set<Match>(); public DbSet<Venue> Venues=>Set<Venue>(); public DbSet<VenueOffer> VenueOffers=>Set<VenueOffer>(); public DbSet<DateEvent> DateEvents=>Set<DateEvent>(); public DbSet<DateParticipant> DateParticipants=>Set<DateParticipant>();     public DbSet<Category> Categories=>Set<Category>(); public DbSet<Diary> Diaries=>Set<Diary>();
+    public DbSet<User> Users=>Set<User>(); public DbSet<Profile> Profiles=>Set<Profile>(); public DbSet<ProfilePhoto> ProfilePhotos=>Set<ProfilePhoto>(); public DbSet<Like> Likes=>Set<Like>(); public DbSet<Match> Matches=>Set<Match>(); public DbSet<Venue> Venues=>Set<Venue>(); public DbSet<VenueOffer> VenueOffers=>Set<VenueOffer>(); public DbSet<DateEvent> DateEvents=>Set<DateEvent>(); public DbSet<DateParticipant> DateParticipants=>Set<DateParticipant>();     public DbSet<Category> Categories=>Set<Category>(); public DbSet<Diary> Diaries=>Set<Diary>(); public DbSet<Event> Events=>Set<Event>();
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.HasPostgresExtension("postgis");
@@ -28,6 +28,7 @@ public sealed class DateMapDbContext(DbContextOptions<DateMapDbContext> options)
         b.Entity<DateParticipant>(e=>{e.HasIndex(x=>new{x.DateEventId,x.ProfileId}).IsUnique();e.HasOne<Profile>().WithMany().HasForeignKey(x=>x.ProfileId).OnDelete(DeleteBehavior.Restrict);});
         b.Entity<Category>(e=>{e.Property(x=>x.Name).HasMaxLength(100);e.Property(x=>x.Icon).HasMaxLength(50);e.Property(x=>x.Color).HasMaxLength(7);e.HasIndex(x=>x.UserId);e.HasOne<User>().WithMany().HasForeignKey(x=>x.UserId).OnDelete(DeleteBehavior.Cascade);e.HasIndex(x=>new{x.UserId,x.Name},"ix_categories_user_name").IsUnique();});
         b.Entity<Diary>(e=>{e.Property(x=>x.Title).HasMaxLength(150);e.Property(x=>x.Description).HasMaxLength(2000);e.Property(x=>x.CoverImageUrl).HasMaxLength(2048);e.HasIndex(x=>x.UserId);e.HasOne<User>().WithMany().HasForeignKey(x=>x.UserId).OnDelete(DeleteBehavior.Cascade);});
+        b.Entity<Event>(e=>{e.Property(x=>x.Title).HasMaxLength(200);e.Property(x=>x.Description).HasMaxLength(2000);e.Property(x=>x.PlaceName).HasMaxLength(200);e.HasIndex(x=>x.UserId);e.HasIndex(x=>x.DiaryId);e.HasOne<User>().WithMany().HasForeignKey(x=>x.UserId).OnDelete(DeleteBehavior.Cascade);e.HasOne<Diary>().WithMany().HasForeignKey(x=>x.DiaryId).OnDelete(DeleteBehavior.Cascade);e.HasOne<Category>().WithMany().HasForeignKey(x=>x.CategoryId).OnDelete(DeleteBehavior.SetNull);});
         foreach(var entity in b.Model.GetEntityTypes()) foreach(var p in entity.GetProperties()) p.SetColumnName(ToSnake(p.Name));
     }
     public override Task<int> SaveChangesAsync(CancellationToken ct=default)

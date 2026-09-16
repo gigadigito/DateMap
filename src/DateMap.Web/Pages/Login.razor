@@ -1,0 +1,72 @@
+@page "/login"
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<h1>Login</h1>
+
+@if (!string.IsNullOrEmpty(error))
+{
+    <div class="error-message">@error</div>
+}
+
+<EditForm Model="model" OnValidSubmit="HandleLogin" FormName="login">
+    <DataAnnotationsValidator />
+
+    <div class="mb-3">
+        <label class="form-label">Email</label>
+        <InputText class="form-control" @bind-Value="model.Email" />
+        <ValidationMessage For="() => model.Email" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Password</label>
+        <InputText class="form-control" type="password" @bind-Value="model.Password" />
+        <ValidationMessage For="() => model.Password" />
+    </div>
+
+    <button type="submit" class="btn btn-primary" disabled="@loading">
+        @(loading ? "Logging in..." : "Login")
+    </button>
+</EditForm>
+
+<p class="mt-3">
+    Don't have an account? <a href="/register">Register</a>
+</p>
+
+@code {
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private LoginModel model = new();
+    private string? error;
+    private bool loading;
+
+    private async Task HandleLogin()
+    {
+        error = null;
+        loading = true;
+        try
+        {
+            await AuthService.LoginAsync(new LoginRequest(model.Email, model.Password));
+            Navigation.NavigateTo(ReturnUrl ?? "/diaries", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private class LoginModel
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.EmailAddress]
+        public string Email { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Password { get; set; } = "";
+    }
+}

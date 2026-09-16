@@ -104,3 +104,13 @@ public sealed class Diary : AuditedEntity
     public void Update(string title,string? description,string? coverImageUrl)
     { if(string.IsNullOrWhiteSpace(title))throw new DomainException("Title is required."); Title=title.Trim();Description=string.IsNullOrWhiteSpace(description)?null:description.Trim();CoverImageUrl=string.IsNullOrWhiteSpace(coverImageUrl)?null:coverImageUrl.Trim();Touch(); }
 }
+
+public sealed class Event : AuditedEntity
+{
+    private Event() { }
+    public Event(Guid userId,Guid diaryId,Guid? categoryId,string title,string? description,DateTime eventDate,string? placeName,double? latitude,double? longitude)
+    { if(string.IsNullOrWhiteSpace(title))throw new DomainException("Title is required."); if(latitude.HasValue!=longitude.HasValue)throw new DomainException("Latitude and longitude must be provided together."); if(latitude is < -90 or > 90)throw new DomainException("Latitude must be between -90 and 90."); if(longitude is < -180 or > 180)throw new DomainException("Longitude must be between -180 and 180."); UserId=userId;DiaryId=diaryId;CategoryId=categoryId;Title=title.Trim();Description=string.IsNullOrWhiteSpace(description)?null:description.Trim();EventDate=eventDate;PlaceName=string.IsNullOrWhiteSpace(placeName)?null:placeName.Trim();Latitude=latitude;Longitude=longitude; }
+    public Guid UserId { get; private set; } public Guid DiaryId { get; private set; } public Guid? CategoryId { get; private set; } public string Title { get; private set; } = ""; public string? Description { get; private set; } public DateTime EventDate { get; private set; } public string? PlaceName { get; private set; } public double? Latitude { get; private set; } public double? Longitude { get; private set; }
+    public void Update(Guid? categoryId,string title,string? description,DateTime eventDate,string? placeName,double? latitude,double? longitude)
+    { if(string.IsNullOrWhiteSpace(title))throw new DomainException("Title is required."); if(latitude.HasValue!=longitude.HasValue)throw new DomainException("Latitude and longitude must be provided together."); if(latitude is < -90 or > 90)throw new DomainException("Latitude must be between -90 and 90."); if(longitude is < -180 or > 180)throw new DomainException("Longitude must be between -180 and 180."); CategoryId=categoryId;Title=title.Trim();Description=string.IsNullOrWhiteSpace(description)?null:description.Trim();EventDate=eventDate;PlaceName=string.IsNullOrWhiteSpace(placeName)?null:placeName.Trim();Latitude=latitude;Longitude=longitude;Touch(); }
+}
