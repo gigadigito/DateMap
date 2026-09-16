@@ -54,6 +54,8 @@ else
     private bool loading = true;
     private string? error;
 
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -85,6 +87,4 @@ else
             error = "Failed to delete diary.";
         }
     }
-
-    [Inject] private IJSRuntime JS { get; set; } = default!;
 }

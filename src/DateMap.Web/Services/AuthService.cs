@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using System.Security.Claims;
 using DateMap.Web.Auth;
 using DateMap.Web.Models;
 using Microsoft.AspNetCore.Components.Authorization;

@@ -1,13 +1,15 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
-using System.Text.Json;
 using DateMap.Web.Models;
 using Microsoft.AspNetCore.Components.Authorization;
 
 namespace DateMap.Web.Auth;
 
-public sealed class DateMapAuthStateProvider(ITokenStorage tokenStorage, IHttpClientFactory httpClientFactory) : AuthenticationStateProvider
+public sealed class DateMapAuthStateProvider(
+    ITokenStorage tokenStorage,
+    IHttpClientFactory httpClientFactory
+) : AuthenticationStateProvider
 {
     private readonly HttpClient _http = httpClientFactory.CreateClient("api");
 
@@ -19,6 +21,7 @@ public sealed class DateMapAuthStateProvider(ITokenStorage tokenStorage, IHttpCl
 
         try
         {
+            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
             var user = await _http.GetFromJsonAsync<CurrentUserDto>("api/auth/me");
             if (user is null)
             {

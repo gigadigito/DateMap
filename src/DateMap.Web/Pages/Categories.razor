@@ -106,6 +106,8 @@ else
     private bool isError;
     private CategoryModel model = new();
 
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
     protected override async Task OnInitializedAsync()
     {
         try { categories = await CategoryService.GetAllAsync(); }
@@ -179,6 +181,4 @@ else
         [System.ComponentModel.DataAnnotations.MaxLength(50)] public string? Icon { get; set; }
         [System.ComponentModel.DataAnnotations.MaxLength(7)] public string? Color { get; set; }
     }
-
-    [Inject] private IJSRuntime JS { get; set; } = default!;
 }

@@ -178,6 +178,7 @@ else
 
 @code {
     [Parameter] public Guid Id { get; set; }
+    [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private DiaryDto? diary;
     private EventDto[] events = [];
@@ -318,6 +319,4 @@ else
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
     }
-
-    [Inject] private IJSRuntime JS { get; set; } = default!;
 }
