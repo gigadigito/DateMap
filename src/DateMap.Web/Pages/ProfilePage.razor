@@ -1,0 +1,61 @@
+@page "/profile"
+@page "/profiles/{Id:guid}"
+@attribute [Authorize]
+@inject DatingService Dating
+
+<div class="page-heading"><h1>@(isMine ? "Meu perfil" : "Perfil")</h1><p>@(isMine ? "Mostre quem você é antes de conhecer alguém." : "Conheça melhor esta pessoa.")</p></div>
+@if (loading) { <p>Carregando perfil...</p> }
+else if (profile is null) { <div class="error-message">Perfil indisponível.</div> }
+else
+{
+    <article class="dating-card" style="max-width:700px">
+        @if (profile.Photos.FirstOrDefault() is string photo) { <img class="profile-photo" src="@photo" alt="Foto de @profile.DisplayName" /> }
+        else { <div class="photo-placeholder" aria-hidden="true">♡</div> }
+        @if (editing)
+        {
+            <div class="mt-3"><label class="form-label" for="name">Nome de exibição</label><input id="name" class="form-control" @bind="name" /></div>
+            <div class="mt-3"><label class="form-label" for="birth">Data de nascimento</label><input id="birth" type="date" class="form-control" @bind="birth" /></div>
+            <div class="mt-3"><label class="form-label" for="bio">Sobre mim</label><textarea id="bio" class="form-control" @bind="bio"></textarea></div>
+            <div class="mt-3"><label class="form-label" for="city">Cidade</label><input id="city" class="form-control" @bind="city" /></div>
+            <div class="d-flex gap-2 mt-3"><button class="btn btn-primary" disabled="@saving" @onclick="Save">Salvar perfil</button><button class="btn btn-outline-secondary" @onclick="() => editing = false">Cancelar</button></div>
+        }
+        else
+        {
+            <h2 class="mt-3">@profile.DisplayName</h2><p>@profile.City</p><p>@profile.Bio</p>
+            @if (isMine) { <button class="btn btn-primary" @onclick="Edit">Editar perfil</button> }
+        }
+        @if (message is not null) { <div class="error-message mt-3" role="alert">@message</div> }
+    </article>
+}
+
+@code {
+    [Parameter] public Guid? Id { get; set; }
+    private ProfileDto? profile;
+    private bool loading = true, editing, saving;
+    private bool isMine => !Id.HasValue;
+    private string name = "", bio = "", city = "";
+    private DateTime birth;
+    private string? message;
+    protected override async Task OnParametersSetAsync()
+    {
+        loading = true;
+        try { profile = Id.HasValue ? await Dating.Profile(Id.Value) : await Dating.MyProfile(); }
+        catch { profile = null; }
+        finally { loading = false; }
+    }
+    private void Edit()
+    {
+        if (profile is null) return;
+        name = profile.DisplayName; bio = profile.Bio ?? ""; city = profile.City ?? "";
+        birth = profile.BirthDate.ToDateTime(TimeOnly.MinValue); editing = true;
+    }
+    private async Task Save()
+    {
+        if (profile is null || saving) return;
+        if (string.IsNullOrWhiteSpace(name)) { message = "Informe seu nome."; return; }
+        saving = true; message = null;
+        try { profile = await Dating.UpdateProfile(profile with { DisplayName = name, BirthDate = DateOnly.FromDateTime(birth), Bio = bio, City = city }); editing = false; }
+        catch { message = "Não foi possível salvar o perfil. Tente novamente."; }
+        finally { saving = false; }
+    }
+}

@@ -1,0 +1,50 @@
+@page "/dates"
+@attribute [Authorize]
+@inject DatingService Dating
+
+<div class="page-heading"><h1>Encontros</h1><p>Veja seus planos e os lugares onde vão se encontrar.</p><a class="btn btn-primary" href="/dates/new">Marcar encontro</a></div>
+@if (loading) { <p>Carregando encontros...</p> }
+else if (error is not null) { <div class="error-message">@error</div> }
+else
+{
+    <h2>Próximos encontros</h2>
+    @if (!cards.Any(c => c.Date.ScheduledAt >= DateTime.UtcNow && c.Date.Status is not (7 or 8 or 9 or 10 or 11)))
+    { <div class="empty-panel mb-4"><p>Você ainda não marcou um encontro.</p><a href="/matches" class="btn btn-outline-primary">Ver meus matches</a></div> }
+    else { @foreach (var card in cards.Where(c => c.Date.ScheduledAt >= DateTime.UtcNow && c.Date.Status is not (7 or 8 or 9 or 10 or 11))) { @Card(card) } }
+    <h2 class="mt-4">Histórico de encontros</h2>
+    @if (!cards.Any(c => c.Date.ScheduledAt < DateTime.UtcNow || c.Date.Status is 7 or 8 or 9 or 10 or 11)) { <p class="text-muted">Seus encontros anteriores aparecerão aqui.</p> }
+    else { @foreach (var card in cards.Where(c => c.Date.ScheduledAt < DateTime.UtcNow || c.Date.Status is 7 or 8 or 9 or 10 or 11)) { @Card(card) } }
+}
+
+@code {
+    private List<(DateDto Date, ProfileDto? Person, VenueDto? Venue)> cards = [];
+    private bool loading = true;
+    private string? error;
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var me = await Dating.MyProfile();
+            var matches = await Dating.Matches() ?? [];
+            var venues = await Dating.Venues() ?? [];
+            foreach (var date in (await Dating.Dates() ?? []).OrderBy(d => d.ScheduledAt))
+            {
+                var match = matches.FirstOrDefault(m => m.Id == date.MatchId);
+                var otherId = match is null || me is null ? Guid.Empty : match.ProfileAId == me.Id ? match.ProfileBId : match.ProfileAId;
+                ProfileDto? person = null;
+                if (otherId != Guid.Empty) { try { person = await Dating.Profile(otherId); } catch { } }
+                cards.Add((date, person, venues.FirstOrDefault(v => v.Id == date.VenueId)));
+            }
+        }
+        catch { error = "Não foi possível carregar seus encontros. Tente novamente."; }
+        finally { loading = false; }
+    }
+    private static string Status(int value) => value switch { 0 => "Convite enviado", 3 => "Confirmado", 7 => "Concluído", 8 => "Recusado", 9 => "Cancelado", 10 => "Não compareceu", _ => "Em andamento" };
+    private RenderFragment Card((DateDto Date, ProfileDto? Person, VenueDto? Venue) item) => @<article class="dating-card mb-3">
+        <h3>@(item.Person?.DisplayName ?? "Seu match")</h3>
+        <p class="mb-1">@(item.Venue?.Name ?? "Local indisponível") · @(item.Venue?.City)</p>
+        <p class="mb-1">@item.Date.ScheduledAt.ToLocalTime().ToString("dd/MM/yyyy 'às' HH:mm")</p>
+        <p class="text-muted">@Status(item.Date.Status)</p>
+        <div class="d-flex gap-2"><a class="btn btn-outline-primary" href="/dates/@item.Date.Id">Ver encontro</a><a class="btn btn-outline-secondary" href="/map?dateId=@item.Date.Id">Ver no mapa</a></div>
+    </article>;
+}

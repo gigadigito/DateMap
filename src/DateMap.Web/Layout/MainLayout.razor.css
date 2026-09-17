@@ -9,6 +9,10 @@
     flex-shrink: 0;
 }
 
+.app-shell { min-height: 100vh; background: #fbf8f7; }
+.content { display:block; max-width:1200px; margin:0 auto; padding:2.5rem 2rem 5rem 13rem; }
+@media (max-width:800px) { .content { padding:1.5rem 1rem 6rem; } }
+
 .sidebar .nav-link {
     display: block;
     padding: 0.5rem 1rem;

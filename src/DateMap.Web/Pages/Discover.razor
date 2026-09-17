@@ -1,0 +1,55 @@
+@page "/discover"
+@attribute [Authorize]
+@inject DatingService Dating
+
+<div class="page-heading"><h1>Descobrir pessoas</h1><p>Conheça alguém que pode querer explorar a cidade com você.</p></div>
+@if (loading) { <p>Buscando perfis...</p> }
+else if (error is not null) { <div class="error-message">@error</div> }
+else if (people.Length == 0) { <div class="empty-panel"><h2>Nenhum perfil por enquanto</h2><p>Volte mais tarde para conhecer novas pessoas.</p></div> }
+else
+{
+    <div class="profile-grid">
+        @foreach (var person in people.Where(p => !passed.Contains(p.Id)))
+        {
+            <article class="dating-card">
+                @if (person.Photos.FirstOrDefault() is string photo) { <img class="profile-photo" src="@photo" alt="Foto de @person.DisplayName" /> }
+                else { <div class="photo-placeholder" aria-hidden="true">♡</div> }
+                <h2 class="mt-3">@person.DisplayName, @Age(person.BirthDate)</h2>
+                <p class="text-muted">@person.City</p><p>@person.Bio</p>
+                <div class="d-flex gap-2"><button class="btn btn-outline-secondary" @onclick="() => Pass(person.Id)">Passar</button><button class="btn btn-primary" disabled="@busy" @onclick="() => Like(person.Id)">♡ Curtir</button></div>
+            </article>
+        }
+    </div>
+    @if (people.All(p => passed.Contains(p.Id))) { <div class="empty-panel mt-3">Você viu todos os perfis disponíveis por enquanto.</div> }
+}
+@if (feedback is not null) { <div class="success-message mt-3" role="status">@feedback @if (matchId.HasValue) { <a href="/matches">Ver matches</a> }</div> }
+
+@code {
+    private ProfileDto[] people = [];
+    private HashSet<Guid> passed = [];
+    private bool loading = true, busy;
+    private string? error, feedback;
+    private Guid? matchId;
+    protected override async Task OnInitializedAsync()
+    {
+        try { people = (await Dating.Discover() ?? []).Where(p => Age(p.BirthDate) >= 18).ToArray(); }
+        catch { error = "Não foi possível carregar os perfis. Tente novamente."; }
+        finally { loading = false; }
+    }
+    private void Pass(Guid id) => passed.Add(id);
+    private async Task Like(Guid id)
+    {
+        if (busy) return;
+        busy = true; error = null; feedback = null;
+        try
+        {
+            var result = await Dating.Like(id);
+            passed.Add(id);
+            matchId = result?.MatchId;
+            feedback = result?.MatchCreated == true ? "Deu match! 🎉 Vocês já podem marcar um encontro." : "Curtida enviada!";
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+    private static int Age(DateOnly birth) { var today = DateOnly.FromDateTime(DateTime.UtcNow); return today.Year - birth.Year - (birth > today.AddYears(-(today.Year-birth.Year)) ? 1 : 0); }
+}

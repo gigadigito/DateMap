@@ -17,7 +17,7 @@ public sealed class AuthService(
     {
         var response = await _http.PostAsJsonAsync("api/auth/register", request);
         if (response.StatusCode == HttpStatusCode.Conflict)
-            throw new InvalidOperationException("An account with this email already exists.");
+            throw new InvalidOperationException("Já existe uma conta com este e-mail.");
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<RegisterResponse>())!;
     }
@@ -26,7 +26,7 @@ public sealed class AuthService(
     {
         var response = await _http.PostAsJsonAsync("api/auth/login", request);
         if (response.StatusCode == HttpStatusCode.Unauthorized)
-            throw new InvalidOperationException("Invalid email or password.");
+            throw new InvalidOperationException("E-mail ou senha inválidos.");
         response.EnsureSuccessStatusCode();
         var login = (await response.Content.ReadFromJsonAsync<LoginResponse>())!;
         await tokenStorage.SetTokenAsync(login.Token);

@@ -1,0 +1,46 @@
+@using System.Text.Json
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<div id="@id" class="map-frame" role="application" aria-label="Mapa de encontros e locais"></div>
+
+@code {
+    [Parameter] public MapMarker[] Markers { get; set; } = [];
+    [Parameter] public EventCallback<Guid> OnSelected { get; set; }
+    private readonly string id = $"dating-map-{Guid.NewGuid():N}";
+    private DotNetObjectReference<DatingMap>? reference;
+    private bool initialized;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            reference = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("dateMap.initMap", id, reference);
+            initialized = true;
+        }
+        if (initialized)
+        {
+            var values = Markers.Select(x => new { id = x.Id, title = x.Title, eventDate = x.When,
+                placeName = x.Place, categoryName = x.Status, categoryColor = "#a4376e",
+                longitude = x.Longitude, latitude = x.Latitude });
+            await JS.InvokeVoidAsync("dateMap.updateMarkers", id, JsonSerializer.Serialize(values));
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnMarkerSelected(string markerId)
+    {
+        if (Guid.TryParse(markerId, out var parsed)) await OnSelected.InvokeAsync(parsed);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (initialized)
+        {
+            try { await JS.InvokeVoidAsync("dateMap.destroyMap", id); }
+            catch (JSDisconnectedException) { }
+        }
+        reference?.Dispose();
+    }
+}

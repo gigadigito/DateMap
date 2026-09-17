@@ -8,15 +8,15 @@
 
 @if (loading)
 {
-    <div class="loading">Loading diary...</div>
+    <div class="loading">Carregando memória...</div>
 }
 else if (diary is null)
 {
-    <div class="error-message">Diary not found.</div>
+    <div class="error-message">Memória não encontrada.</div>
 }
 else if (isEditing)
 {
-    <h1>Edit Diary</h1>
+    <h1>Editar memória</h1>
     @if (!string.IsNullOrEmpty(error))
     {
         <div class="error-message">@error</div>
@@ -24,20 +24,20 @@ else if (isEditing)
     <EditForm Model="editModel" OnValidSubmit="HandleUpdate" FormName="editDiary">
         <DataAnnotationsValidator />
         <div class="mb-3">
-            <label class="form-label">Title</label>
+            <label class="form-label">Título</label>
             <InputText class="form-control" @bind-Value="editModel.Title" />
             <ValidationMessage For="() => editModel.Title" />
         </div>
         <div class="mb-3">
-            <label class="form-label">Description</label>
+            <label class="form-label">Descrição</label>
             <InputTextArea class="form-control" @bind-Value="editModel.Description" rows="3" />
         </div>
         <div class="mb-3">
-            <label class="form-label">Cover Image URL</label>
+            <label class="form-label">Link da imagem de capa</label>
             <InputText class="form-control" @bind-Value="editModel.CoverImageUrl" />
         </div>
-        <button type="submit" class="btn btn-primary" disabled="@saving">Save</button>
-        <button class="btn btn-secondary" @onclick="CancelEdit">Cancel</button>
+        <button type="submit" class="btn btn-primary" disabled="@saving">Salvar</button>
+        <button class="btn btn-secondary" @onclick="CancelEdit">Cancelar</button>
     </EditForm>
 }
 else
@@ -45,8 +45,8 @@ else
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1>@diary.Title</h1>
         <div class="d-flex gap-2">
-            <button class="btn btn-outline-secondary btn-sm" @onclick="StartEdit">Edit</button>
-            <button class="btn btn-outline-danger btn-sm" @onclick="ConfirmDeleteDiary">Delete</button>
+            <button class="btn btn-outline-secondary btn-sm" @onclick="StartEdit">Editar</button>
+            <button class="btn btn-outline-danger btn-sm" @onclick="ConfirmDeleteDiary">Excluir</button>
         </div>
     </div>
 
@@ -54,20 +54,27 @@ else
     {
         <p>@diary.Description</p>
     }
-    <p class="text-muted">Created: @diary.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+    <p class="text-muted">Criada em @diary.CreatedAt.ToString("dd/MM/yyyy HH:mm")</p>
+
+    <hr />
+
+    <div class="mb-3">
+        <h3>Mapa da memória</h3>
+        <EventMap @ref="_eventMap" Events="@events" Categories="@categories" Height="450px" />
+    </div>
 
     <hr />
 
     <div class="d-flex justify-content-between align-items-center">
-        <h3>Events</h3>
-        <button class="btn btn-primary btn-sm" @onclick="ShowAddEvent">Add Event</button>
+        <h3>Momentos</h3>
+        <button class="btn btn-primary btn-sm" @onclick="ShowAddEvent">Adicionar momento</button>
     </div>
 
     @if (showEventForm)
     {
         <div class="card mb-3">
             <div class="card-body">
-                <h5>@(editingEvent is null ? "New Event" : "Edit Event")</h5>
+                <h5>@(editingEvent is null ? "Novo momento" : "Editar momento")</h5>
                 @if (!string.IsNullOrEmpty(eventError))
                 {
                     <div class="error-message">@eventError</div>
@@ -76,24 +83,24 @@ else
                     <DataAnnotationsValidator />
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Title</label>
+                            <label class="form-label">Título</label>
                             <InputText class="form-control" @bind-Value="eventModel.Title" />
                             <ValidationMessage For="() => eventModel.Title" />
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Event Date</label>
+                            <label class="form-label">Data do momento</label>
                             <InputDate class="form-control" @bind-Value="eventModel.EventDate" />
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Place Name</label>
+                            <label class="form-label">Local</label>
                             <InputText class="form-control" @bind-Value="eventModel.PlaceName" />
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Category</label>
+                            <label class="form-label">Categoria</label>
                             <InputSelect class="form-select" @bind-Value="eventModel.CategoryId">
-                                <option value="">No category</option>
+                                <option value="">Sem categoria</option>
                                 @foreach (var cat in categories)
                                 {
                                     <option value="@cat.Id">@cat.Name</option>
@@ -102,21 +109,35 @@ else
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Description</label>
+                        <label class="form-label">Descrição</label>
                         <InputTextArea class="form-control" @bind-Value="eventModel.Description" rows="2" />
                     </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
+                    <details class="mb-3"><summary>Coordenadas avançadas</summary><div class="row">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Latitude</label>
                             <InputNumber class="form-control" @bind-Value="eventModel.Latitude" />
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-4 mb-3">
                             <label class="form-label">Longitude</label>
                             <InputNumber class="form-control" @bind-Value="eventModel.Longitude" />
                         </div>
+                        <div class="col-md-4 mb-3 d-flex align-items-end gap-2">
+                            @if (eventModel.Latitude.HasValue && eventModel.Longitude.HasValue)
+                            {
+                                <button type="button" class="btn btn-outline-danger btn-sm" @onclick="ClearLocation">Limpar localização</button>
+                            }
+                        </div>
+                    </div></details>
+                    <div class="mb-3">
+                        <label class="form-label">Clique no mapa para escolher o local</label>
+                        <LocationPicker
+                            Latitude="@eventModel.Latitude"
+                            Longitude="@eventModel.Longitude"
+                            LatitudeChanged="v => eventModel.Latitude = v"
+                            LongitudeChanged="v => eventModel.Longitude = v" />
                     </div>
-                    <button type="submit" class="btn btn-primary btn-sm" disabled="@eventSaving">Save Event</button>
-                    <button class="btn btn-secondary btn-sm" @onclick="CancelEventForm">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm" disabled="@eventSaving">Salvar momento</button>
+                    <button class="btn btn-secondary btn-sm" @onclick="CancelEventForm">Cancelar</button>
                 </EditForm>
             </div>
         </div>
@@ -124,12 +145,12 @@ else
 
     @if (eventsLoading)
     {
-        <div class="loading">Loading events...</div>
+        <div class="loading">Carregando momentos...</div>
     }
     else if (events.Length == 0)
     {
         <div class="empty-state">
-            <p>No events yet. Add your first event!</p>
+            <p>Esta memória ainda não tem momentos.</p>
         </div>
     }
     else
@@ -162,8 +183,12 @@ else
                             }
                         </div>
                         <div class="d-flex gap-1">
-                            <button class="btn btn-outline-secondary btn-sm" @onclick="() => StartEditEvent(ev)">Edit</button>
-                            <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmDeleteEvent(ev)">Delete</button>
+                            @if (ev.Latitude.HasValue && ev.Longitude.HasValue)
+                            {
+                                <button class="btn btn-outline-info btn-sm" @onclick="() => ShowOnMap(ev)">Ver no mapa</button>
+                            }
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="() => StartEditEvent(ev)">Editar</button>
+                            <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmDeleteEvent(ev)">Excluir</button>
                         </div>
                     </div>
                     @if (!string.IsNullOrEmpty(ev.Description))
@@ -192,6 +217,7 @@ else
     private string? error;
     private string? eventError;
     private EventDto? editingEvent;
+    private EventMap? _eventMap;
 
     private EditDiaryModel editModel = new();
     private EventFormModel eventModel = new();
@@ -232,15 +258,15 @@ else
             diary = await DiaryService.UpdateAsync(Id, new UpdateDiaryRequest(editModel.Title, editModel.Description, editModel.CoverImageUrl));
             isEditing = false;
         }
-        catch { error = "Failed to update diary."; }
+        catch { error = "Não foi possível atualizar a memória."; }
         finally { saving = false; }
     }
 
     private async Task ConfirmDeleteDiary()
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"Delete \"{diary!.Title}\"?")) return;
+        if (!await JS.InvokeAsync<bool>("confirm", $"Excluir \"{diary!.Title}\"?")) return;
         try { await DiaryService.DeleteAsync(Id); Navigation.NavigateTo("/diaries"); }
-        catch { error = "Failed to delete diary."; }
+        catch { error = "Não foi possível excluir a memória."; }
     }
 
     private void ShowAddEvent()
@@ -270,6 +296,12 @@ else
 
     private void CancelEventForm() { showEventForm = false; editingEvent = null; }
 
+    private void ClearLocation()
+    {
+        eventModel.Latitude = null;
+        eventModel.Longitude = null;
+    }
+
     private async Task HandleEventSubmit()
     {
         eventSaving = true;
@@ -289,15 +321,21 @@ else
             editingEvent = null;
             await LoadEvents();
         }
-        catch { eventError = "Failed to save event. Check the form."; }
+        catch { eventError = "Não foi possível salvar o momento. Confira os campos e tente novamente."; }
         finally { eventSaving = false; }
     }
 
     private async Task ConfirmDeleteEvent(EventDto ev)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"Delete event \"{ev.Title}\"?")) return;
+        if (!await JS.InvokeAsync<bool>("confirm", $"Excluir momento \"{ev.Title}\"?")) return;
         try { await EventService.DeleteAsync(ev.Id); await LoadEvents(); }
         catch { }
+    }
+
+    private async Task ShowOnMap(EventDto ev)
+    {
+        if (_eventMap is not null)
+            await _eventMap.FlyToEvent(ev);
     }
 
     private class EditDiaryModel

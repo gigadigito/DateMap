@@ -1,0 +1,61 @@
+@page "/dates/{Id:guid}"
+@attribute [Authorize]
+@inject DatingService Dating
+
+<div class="page-heading"><a href="/dates">← Encontros</a><h1>Seu encontro</h1></div>
+@if (loading) { <p>Carregando encontro...</p> }
+else if (date is null) { <div class="error-message">Encontro indisponível.</div> }
+else
+{
+    <article class="dating-card">
+        <h2>@(person?.DisplayName ?? "Seu match")</h2>
+        <p>@date.ScheduledAt.ToLocalTime().ToString("dd/MM/yyyy 'às' HH:mm")</p>
+        <p><strong>Local:</strong> @(venue?.Name ?? "Local indisponível")</p>
+        @if (venue is not null) { <p>@venue.Address, @venue.City</p><DatingMap Markers="@markers" /> }
+        <p class="mt-3"><strong>Situação:</strong> @Status(date.Status)</p>
+        @if (date.Status == 0 && myProfile is not null && date.Participants.Any(p => p.ProfileId == myProfile.Id && p.Role == 1))
+        { <div class="d-flex gap-2"><button class="btn btn-primary" disabled="@busy" @onclick="Accept">Aceitar convite</button><button class="btn btn-outline-secondary" disabled="@busy" @onclick="Decline">Recusar</button></div> }
+        @if (date.Status is 0 or 3) { <button class="btn btn-outline-danger mt-2" disabled="@busy" @onclick="Cancel">Cancelar encontro</button> }
+        @if (error is not null) { <div class="error-message mt-2">@error</div> }
+    </article>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private DateDto? date;
+    private ProfileDto? person, myProfile;
+    private VenueDto? venue;
+    private MapMarker[] markers = [];
+    private bool loading = true, busy;
+    private string? error;
+    protected override async Task OnParametersSetAsync()
+    {
+        loading = true;
+        try
+        {
+            myProfile = await Dating.MyProfile();
+            date = (await Dating.Dates())?.FirstOrDefault(d => d.Id == Id);
+            if (date is not null)
+            {
+                venue = (await Dating.Venues())?.FirstOrDefault(v => v.Id == date.VenueId);
+                var match = (await Dating.Matches())?.FirstOrDefault(m => m.Id == date.MatchId);
+                if (myProfile is not null && match is not null) person = await Dating.Profile(match.ProfileAId == myProfile.Id ? match.ProfileBId : match.ProfileAId);
+                if (venue is not null) markers = [new(date.Id, person?.DisplayName ?? "Encontro", date.ScheduledAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm"), venue.Name, Status(date.Status), venue.Location.Longitude, venue.Location.Latitude)];
+            }
+        }
+        catch { error = "Não foi possível carregar o encontro."; }
+        finally { loading = false; }
+    }
+    private static string Status(int s) => s switch { 0 => "Aguardando resposta", 3 => "Confirmado", 7 => "Concluído", 8 => "Recusado", 9 => "Cancelado", 10 => "Não compareceu", _ => "Em andamento" };
+    private Task Accept() => Action("accept");
+    private Task Decline() => Action("decline");
+    private Task Cancel() => Action("cancel");
+    private async Task Action(string action)
+    {
+        if (date is null || busy) return;
+        busy = true; error = null;
+        try { date = await Dating.DateAction(date.Id, action); }
+        catch (Exception ex) { error = ex.Message; }
+        finally { busy = false; }
+    }
+}

@@ -1,0 +1,72 @@
+@page "/dates/new"
+@attribute [Authorize]
+@inject DatingService Dating
+@inject NavigationManager Navigation
+
+<div class="page-heading"><h1>Marcar encontro</h1><p>Escolha um match, um horário e um local para convidar a pessoa.</p></div>
+@if (loading) { <p>Preparando opções...</p> }
+else if (matches.Count == 0) { <div class="empty-panel"><h2>Primeiro, encontre um match</h2><p>Um encontro começa quando o interesse é recíproco.</p><a class="btn btn-primary" href="/discover">Descobrir pessoas</a></div> }
+else
+{
+    <div class="dating-card">
+        <div class="mb-3"><label class="form-label" for="match">Com quem?</label><select id="match" class="form-select" @bind="selectedMatch"><option value="">Escolha um match</option>@foreach (var match in matches) { <option value="@match.Match.Id">@match.Person.DisplayName</option> }</select></div>
+        <div class="mb-3"><label class="form-label" for="when">Quando?</label><input id="when" type="datetime-local" class="form-control" @bind="when" /></div>
+        <div class="mb-3"><label class="form-label" for="venue">Onde?</label><select id="venue" class="form-select" @bind="selectedVenue"><option value="">Escolha um local</option>@foreach (var venue in venues) { <option value="@venue.Id">@venue.Name — @venue.City</option> }</select><small class="text-muted">Encontros usam os locais disponíveis no Date Map.</small></div>
+        @if (venues.Length > 0)
+        {
+            <p class="mb-2">Ou escolha um dos locais no mapa:</p>
+            <DatingMap Markers="@venueMarkers" OnSelected="SelectVenue" />
+            @if (SelectedVenue is not null) { <p class="mt-2" role="status">Local selecionado: <strong>@SelectedVenue.Name</strong></p> }
+        }
+        else { <p class="text-muted">Ainda não há locais disponíveis para marcar encontros.</p> }
+        @if (error is not null) { <div class="error-message mt-3" role="alert">@error</div> }
+        <button class="btn btn-primary mt-3" disabled="@saving" @onclick="Save">@(saving ? "Enviando convite..." : "Confirmar encontro")</button>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "matchId")] public Guid? MatchId { get; set; }
+    private List<(MatchDto Match, ProfileDto Person)> matches = [];
+    private VenueDto[] venues = [];
+    private MapMarker[] venueMarkers = [];
+    private string selectedMatch = "", selectedVenue = "";
+    private DateTime when = DateTime.Now.AddDays(1);
+    private bool loading = true, saving;
+    private string? error;
+    private VenueDto? SelectedVenue => Guid.TryParse(selectedVenue, out var id) ? venues.FirstOrDefault(v => v.Id == id) : null;
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var me = await Dating.MyProfile();
+            foreach (var match in await Dating.Matches() ?? [])
+            {
+                if (me is null || match.Status != 0) continue;
+                var other = match.ProfileAId == me.Id ? match.ProfileBId : match.ProfileAId;
+                var person = await Dating.Profile(other);
+                if (person is not null) matches.Add((match, person));
+            }
+            venues = await Dating.Venues() ?? [];
+            venueMarkers = venues.Select(v => new MapMarker(v.Id, v.Name, v.Category, $"{v.Address}, {v.City}", "Local disponível", v.Location.Longitude, v.Location.Latitude)).ToArray();
+            if (MatchId.HasValue && matches.Any(m => m.Match.Id == MatchId)) selectedMatch = MatchId.ToString()!;
+        }
+        catch { error = "Não foi possível carregar as opções. Tente novamente."; }
+        finally { loading = false; }
+    }
+    private Task SelectVenue(Guid id) { selectedVenue = id.ToString(); return Task.CompletedTask; }
+    private async Task Save()
+    {
+        if (saving) return;
+        if (!Guid.TryParse(selectedMatch, out var match)) { error = "Escolha com quem você quer sair."; return; }
+        if (when <= DateTime.Now) { error = "Escolha uma data futura para o encontro."; return; }
+        if (!Guid.TryParse(selectedVenue, out var venue)) { error = "Selecione um local."; return; }
+        saving = true; error = null;
+        try
+        {
+            var created = await Dating.CreateDate(new(match, venue, when.ToUniversalTime()));
+            Navigation.NavigateTo(created is null ? "/dates" : $"/dates/{created.Id}");
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { saving = false; }
+    }
+}

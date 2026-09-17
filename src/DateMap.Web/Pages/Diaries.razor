@@ -2,15 +2,15 @@
 @attribute [Authorize]
 @inject DiaryService DiaryService
 
-<h1>My Diaries</h1>
+<h1>Minhas memórias</h1>
 
 <div class="mb-3">
-    <a href="/diaries/new" class="btn btn-primary">New Diary</a>
+    <a href="/diaries/new" class="btn btn-primary">Nova memória</a>
 </div>
 
 @if (loading)
 {
-    <div class="loading">Loading diaries...</div>
+    <div class="loading">Carregando memórias...</div>
 }
 else if (error is not null)
 {
@@ -19,8 +19,8 @@ else if (error is not null)
 else if (diaries.Length == 0)
 {
     <div class="empty-state">
-        <p>You don't have any diaries yet.</p>
-        <a href="/diaries/new" class="btn btn-primary">Create your first diary</a>
+        <p>Você ainda não registrou nenhuma memória.</p>
+        <a href="/diaries/new" class="btn btn-primary">Criar primeira memória</a>
     </div>
 }
 else
@@ -36,11 +36,11 @@ else
                         {
                             <p class="card-text text-muted">@diary.Description</p>
                         }
-                        <p class="card-text"><small class="text-muted">Created: @diary.CreatedAt.ToString("dd/MM/yyyy")</small></p>
+                        <p class="card-text"><small class="text-muted">Criada em @diary.CreatedAt.ToString("dd/MM/yyyy")</small></p>
                         <div class="d-flex gap-2">
-                            <a href="/diaries/@diary.Id" class="btn btn-outline-primary btn-sm">Open</a>
-                            <a href="/diaries/@diary.Id/edit" class="btn btn-outline-secondary btn-sm">Edit</a>
-                            <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmDelete(diary)">Delete</button>
+                            <a href="/diaries/@diary.Id" class="btn btn-outline-primary btn-sm">Abrir</a>
+                            <a href="/diaries/@diary.Id/edit" class="btn btn-outline-secondary btn-sm">Editar</a>
+                            <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmDelete(diary)">Excluir</button>
                         </div>
                     </div>
                 </div>
@@ -64,7 +64,7 @@ else
         }
         catch
         {
-            error = "Unable to load your diaries. Please try again.";
+            error = "Não foi possível carregar as memórias. Tente novamente.";
         }
         finally
         {
@@ -74,7 +74,7 @@ else
 
     private async Task ConfirmDelete(DiaryDto diary)
     {
-        if (!await JS.InvokeAsync<bool>("confirm", $"Delete \"{diary.Title}\"?"))
+        if (!await JS.InvokeAsync<bool>("confirm", $"Excluir \"{diary.Title}\"?"))
             return;
 
         try
@@ -84,7 +84,7 @@ else
         }
         catch
         {
-            error = "Failed to delete diary.";
+            error = "Não foi possível excluir a memória.";
         }
     }
 }

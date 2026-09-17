@@ -1,31 +1,24 @@
 ﻿@inject AuthService AuthService
 @inject NavigationManager Navigation
 
-<nav class="navbar navbar-dark bg-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="/">Date Map</a>
-        <AuthorizeView>
-            <Authorized>
-                <div class="d-flex align-items-center gap-3">
-                    <span class="text-light">@context.User.Identity?.Name</span>
-                    <button class="btn btn-outline-light btn-sm" @onclick="LogoutAsync">Logout</button>
-                </div>
-            </Authorized>
-        </AuthorizeView>
-    </div>
-</nav>
+<header class="site-header">
+    <a class="brand" href="/">Date <span>Map</span></a>
+    <AuthorizeView>
+        <Authorized>
+            <div class="header-account"><span>@context.User.Identity?.Name</span><button class="btn btn-sm btn-outline-light" @onclick="LogoutAsync">Sair</button></div>
+        </Authorized>
+        <NotAuthorized><a class="btn btn-sm btn-outline-light" href="/login">Entrar</a></NotAuthorized>
+    </AuthorizeView>
+</header>
 
 <AuthorizeView>
     <Authorized>
-        <nav class="sidebar bg-light border-end">
-            <div class="p-3">
-                <NavLink class="nav-link" href="/diaries" Match="NavLinkMatch.All">
-                    <span>Diaries</span>
-                </NavLink>
-                <NavLink class="nav-link" href="/categories">
-                    <span>Categories</span>
-                </NavLink>
-            </div>
+        <nav class="primary-nav" aria-label="Navegação principal">
+            <NavLink href="/discover">Descobrir</NavLink>
+            <NavLink href="/matches">Matches</NavLink>
+            <NavLink href="/dates">Encontros</NavLink>
+            <NavLink href="/map">Mapa</NavLink>
+            <NavLink href="/profile">Perfil</NavLink>
         </nav>
     </Authorized>
 </AuthorizeView>

@@ -1,0 +1,84 @@
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+
+<div id="@_containerId" class="event-map-container" style="width:100%;height:@Height;position:relative;"
+     aria-label="Mapa interativo dos momentos desta memória"
+     title="Mapa de memórias"></div>
+
+@if (ShowEmptyMessage && (!Events?.Any() ?? true))
+{
+    <div class="event-map-empty">
+        <p>Ainda não há momentos no mapa.</p>
+        <p>Escolha um local para um momento e ele aparecerá aqui.</p>
+    </div>
+}
+
+@code {
+    [Parameter] public EventDto[]? Events { get; set; }
+    [Parameter] public CategoryDto[]? Categories { get; set; }
+    [Parameter] public string Height { get; set; } = "450px";
+    [Parameter] public bool ShowEmptyMessage { get; set; } = true;
+    [Parameter] public EventCallback<string> OnMarkerClicked { get; set; }
+
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    private readonly string _containerId = $"map-{Guid.NewGuid():N}";
+    private bool _initialized;
+    private DotNetObjectReference<EventMap>? _dotNetRef;
+
+    private EventDto[] MappedEvents =>
+        Events?.Where(e => e.Latitude.HasValue && e.Longitude.HasValue).ToArray() ?? [];
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("dateMap.initMap", _containerId, _dotNetRef);
+            _initialized = true;
+            await UpdateMarkers();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_initialized)
+            await UpdateMarkers();
+    }
+
+    private async Task UpdateMarkers()
+    {
+        if (!_initialized) return;
+        var mapped = MappedEvents;
+        if (mapped.Length == 0)
+        {
+            await JS.InvokeVoidAsync("dateMap.updateMarkers", _containerId, "[]");
+            return;
+        }
+        var categories = Categories ?? [];
+        var models = mapped.Select(e => e.ToMapEvent(categories)).ToArray();
+        var json = System.Text.Json.JsonSerializer.Serialize(models);
+        await JS.InvokeVoidAsync("dateMap.updateMarkers", _containerId, json);
+    }
+
+    public async Task FlyToEvent(EventDto ev)
+    {
+        if (ev.Latitude.HasValue && ev.Longitude.HasValue)
+            await JS.InvokeVoidAsync("dateMap.flyToEvent", _containerId, ev.Longitude.Value, ev.Latitude.Value);
+    }
+
+    [JSInvokable]
+    public async Task OnMarkerSelected(string eventId)
+    {
+        await OnMarkerClicked.InvokeAsync(eventId);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_initialized)
+        {
+            await JS.InvokeVoidAsync("dateMap.destroyMap", _containerId);
+            _dotNetRef?.Dispose();
+        }
+    }
+}

@@ -3,7 +3,7 @@
 @inject DiaryService DiaryService
 @inject NavigationManager Navigation
 
-<h1>New Diary</h1>
+<h1>Nova memória</h1>
 
 @if (!string.IsNullOrEmpty(error))
 {
@@ -14,26 +14,26 @@
     <DataAnnotationsValidator />
 
     <div class="mb-3">
-        <label class="form-label">Title</label>
+        <label class="form-label">Título</label>
         <InputText class="form-control" @bind-Value="model.Title" />
         <ValidationMessage For="() => model.Title" />
     </div>
 
     <div class="mb-3">
-        <label class="form-label">Description</label>
+        <label class="form-label">Descrição</label>
         <InputTextArea class="form-control" @bind-Value="model.Description" rows="3" />
         <ValidationMessage For="() => model.Description" />
     </div>
 
     <div class="mb-3">
-        <label class="form-label">Cover Image URL</label>
+        <label class="form-label">Link da imagem de capa</label>
         <InputText class="form-control" @bind-Value="model.CoverImageUrl" />
     </div>
 
     <button type="submit" class="btn btn-primary" disabled="@loading">
-        @(loading ? "Creating..." : "Create Diary")
+        @(loading ? "Criando..." : "Criar memória")
     </button>
-    <a href="/diaries" class="btn btn-secondary">Cancel</a>
+    <a href="/diaries" class="btn btn-secondary">Cancelar</a>
 </EditForm>
 
 @code {
@@ -52,7 +52,7 @@
         }
         catch
         {
-            error = "Failed to create diary. Please check the form.";
+            error = "Não foi possível criar a memória. Confira os campos.";
         }
         finally
         {

@@ -3,3 +3,12 @@
     min-height: calc(100vh - 56px);
     flex-shrink: 0;
 }
+
+.site-header { height:72px; display:flex; align-items:center; justify-content:space-between; padding:0 2rem; background:#252238; color:white; }
+.brand { color:white; font-size:1.45rem; font-weight:800; letter-spacing:-.04em; text-decoration:none; }
+.brand span { color:#ff9a9e; }
+.header-account { display:flex; gap:1rem; align-items:center; }
+.primary-nav { position:absolute; top:72px; bottom:0; width:184px; padding:1.75rem .8rem; display:flex; flex-direction:column; gap:.3rem; background:white; border-right:1px solid #eee6e8; }
+.primary-nav a { color:#51475a; padding:.8rem 1rem; border-radius:12px; text-decoration:none; font-weight:600; }
+.primary-nav a:hover, .primary-nav a.active { color:#9b2b66; background:#fff0f5; }
+@media (max-width:800px) { .site-header { padding:0 1rem; } .primary-nav { position:fixed; top:auto; bottom:0; z-index:1000; width:100%; height:68px; padding:.3rem; flex-direction:row; justify-content:space-around; border-right:0; border-top:1px solid #eee6e8; } .primary-nav a { font-size:.8rem; padding:.55rem .35rem; text-align:center; } .header-account span { display:none; } }

@@ -19,9 +19,13 @@ builder.Services.AddScoped<ITokenStorage, LocalStorageTokenStorage>();
 builder.Services.AddScoped<DateMapAuthStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(sp => sp.GetRequiredService<DateMapAuthStateProvider>());
 
+builder.Services.AddAuthorizationCore();
+builder.Services.AddCascadingAuthenticationState();
+
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<DiaryService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<EventService>();
+builder.Services.AddScoped<DatingService>();
 
 await builder.Build().RunAsync();

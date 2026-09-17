@@ -1,27 +1,20 @@
 ﻿@page "/"
 @attribute [Authorize]
 
-<h1>Date Map</h1>
-
-<p>Welcome to your dating diary. Manage your diaries, events, and categories.</p>
-
-<div class="row mt-4">
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Diaries</h5>
-                <p class="card-text">Create and manage your travel and dating diaries.</p>
-                <a href="/diaries" class="btn btn-primary">View Diaries</a>
-            </div>
-        </div>
+<section class="hero">
+    <span class="eyebrow">BEM-VINDO AO DATE MAP</span>
+    <h1>Encontre alguém e descubra novos lugares juntos.</h1>
+    <p>Conheça pessoas, crie conexões e transforme um match em um encontro especial.</p>
+    <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-primary" href="/discover">Descobrir pessoas</a>
+        <a class="btn btn-outline-primary" href="/matches">Ver matches</a>
+        <a class="btn btn-outline-secondary" href="/dates">Meus encontros</a>
     </div>
-    <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Categories</h5>
-                <p class="card-text">Organize your events with custom categories.</p>
-                <a href="/categories" class="btn btn-primary">View Categories</a>
-            </div>
-        </div>
-    </div>
+</section>
+
+<div class="feature-grid">
+    <a class="feature-card" href="/discover"><span class="feature-icon">♡</span><h2>Novas pessoas</h2><p>Encontre perfis para conhecer.</p></a>
+    <a class="feature-card" href="/matches"><span class="feature-icon">♥</span><h2>Matches</h2><p>Veja quem também quer conhecer você.</p></a>
+    <a class="feature-card" href="/dates"><span class="feature-icon">◷</span><h2>Próximos encontros</h2><p>Seu próximo encontro começa com um match.</p></a>
+    <a class="feature-card" href="/map"><span class="feature-icon">⌖</span><h2>Mapa dos encontros</h2><p>Explore os lugares que fazem parte da sua história.</p></a>
 </div>

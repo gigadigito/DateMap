@@ -1,0 +1,48 @@
+@page "/map"
+@attribute [Authorize]
+@inject DatingService Dating
+@inject NavigationManager Navigation
+
+<div class="page-heading"><h1>Mapa dos encontros</h1><p>Os lugares dos seus encontros, em um só mapa.</p></div>
+@if (loading) { <p>Carregando mapa...</p> }
+else if (error is not null) { <div class="error-message">@error</div> }
+else if (markers.Length == 0)
+{ <div class="empty-panel"><h2>Você ainda não tem encontros no mapa.</h2><p>Quando marcar um encontro com um match, ele aparecerá aqui.</p><a class="btn btn-primary" href="/matches">Ver meus matches</a></div> }
+else
+{
+    <DatingMap Markers="@markers" OnSelected="OpenDate" />
+    <p class="text-muted mt-2">Toque em um marcador para ver o encontro.</p>
+}
+
+@code {
+    private MapMarker[] markers = [];
+    private bool loading = true;
+    private string? error;
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var me = await Dating.MyProfile();
+            var matches = await Dating.Matches() ?? [];
+            var venues = await Dating.Venues() ?? [];
+            var list = new List<MapMarker>();
+            foreach (var date in await Dating.Dates() ?? [])
+            {
+                var venue = venues.FirstOrDefault(v => v.Id == date.VenueId);
+                if (venue is null) continue;
+                var match = matches.FirstOrDefault(m => m.Id == date.MatchId);
+                string personName = "Seu match";
+                if (me is not null && match is not null)
+                {
+                    var id = match.ProfileAId == me.Id ? match.ProfileBId : match.ProfileAId;
+                    try { personName = (await Dating.Profile(id))?.DisplayName ?? personName; } catch { }
+                }
+                list.Add(new(date.Id, personName, date.ScheduledAt.ToLocalTime().ToString("dd/MM/yyyy 'às' HH:mm"), venue.Name, date.Status == 9 ? "Cancelado" : "Encontro", venue.Location.Longitude, venue.Location.Latitude));
+            }
+            markers = list.ToArray();
+        }
+        catch { error = "Não foi possível carregar o mapa. Tente novamente."; }
+        finally { loading = false; }
+    }
+    private void OpenDate(Guid id) => Navigation.NavigateTo($"/dates/{id}");
+}

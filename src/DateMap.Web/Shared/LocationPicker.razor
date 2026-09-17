@@ -1,0 +1,60 @@
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+
+<div id="@_containerId" class="location-picker-container" style="width:100%;height:300px;position:relative;cursor:crosshair;"
+     aria-label="Clique para selecionar o local"
+     title="Clique no mapa para escolher o local"></div>
+
+@code {
+    [Parameter] public double? Latitude { get; set; }
+    [Parameter] public double? Longitude { get; set; }
+    [Parameter] public EventCallback<double?> LatitudeChanged { get; set; }
+    [Parameter] public EventCallback<double?> LongitudeChanged { get; set; }
+
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    private readonly string _containerId = $"picker-{Guid.NewGuid():N}";
+    private bool _initialized;
+    private DotNetObjectReference<LocationPicker>? _dotNetRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("dateMap.initLocationPicker", _containerId, _dotNetRef);
+            _initialized = true;
+            if (Latitude.HasValue && Longitude.HasValue)
+                await JS.InvokeVoidAsync("dateMap.setPickerLocation", _containerId, Longitude.Value, Latitude.Value);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_initialized)
+        {
+            if (Latitude.HasValue && Longitude.HasValue)
+                await JS.InvokeVoidAsync("dateMap.setPickerLocation", _containerId, Longitude.Value, Latitude.Value);
+            else
+                await JS.InvokeVoidAsync("dateMap.clearPicker", _containerId);
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnLocationSelected(double latitude, double longitude)
+    {
+        Latitude = Math.Round(latitude, 6);
+        Longitude = Math.Round(longitude, 6);
+        await LatitudeChanged.InvokeAsync(Latitude);
+        await LongitudeChanged.InvokeAsync(Longitude);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_initialized)
+        {
+            await JS.InvokeVoidAsync("dateMap.destroyMap", _containerId);
+            _dotNetRef?.Dispose();
+        }
+    }
+}
